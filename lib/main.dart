@@ -29,21 +29,51 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  final List<String> _questions = [
+    'You can lead a cow down stairs but not up stairs.',
+    'Approximately one quarter of human bones are in the feet.',
+    'A slug\'s blood is green.',
+  ];
+  final List<bool> _answers = [false, true, true];
+  final List<Icon> _results = [];
+  int _currentQuestionIndex = 0;
+
+  bool get quizFinished => _results.length == _questions.length;
+  bool get anyQuestions => _currentQuestionIndex < _questions.length - 1;
+
+  void answerTapped(bool answer) {
+    if (quizFinished) return;
+
+    checkAnswer(answer);
+
+    if (anyQuestions) showNextQuestion();
+  }
+
+  void showNextQuestion() => setState(() => _currentQuestionIndex++);
+
+  bool answerIsValid(bool answer) => _answers[_currentQuestionIndex] == answer;
+
+  void checkAnswer(bool answer) => setState(() => _results
+      .add(answerIsValid(answer) ? validResultIcon() : invalidResultIcon()));
+
+  Icon validResultIcon() => const Icon(Icons.check, color: Colors.green);
+  Icon invalidResultIcon() => const Icon(Icons.close, color: Colors.red);
+
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const Expanded(
+        Expanded(
           flex: 5,
           child: Padding(
-            padding: EdgeInsets.all(10.0),
+            padding: const EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                _questions[_currentQuestionIndex],
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 25.0,
                   color: Colors.white,
                 ),
@@ -56,8 +86,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.all(15.0),
             child: TextButton(
               style: TextButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.green,
               ),
               child: const Text(
                 'True',
@@ -66,9 +95,7 @@ class _QuizPageState extends State<QuizPage> {
                   fontSize: 20.0,
                 ),
               ),
-              onPressed: () {
-                //The user picked true.
-              },
+              onPressed: () => answerTapped(true),
             ),
           ),
         ),
@@ -86,20 +113,14 @@ class _QuizPageState extends State<QuizPage> {
                   color: Colors.white,
                 ),
               ),
-              onPressed: () {
-                //The user picked false.
-              },
+              onPressed: () => answerTapped(false),
             ),
           ),
         ),
-        //TODO: Add a Row here as your score keeper
+        Row(
+          children: _results,
+        )
       ],
     );
   }
 }
-
-/*
-question1: 'You can lead a cow down stairs but not up stairs.', false,
-question2: 'Approximately one quarter of human bones are in the feet.', true,
-question3: 'A slug\'s blood is green.', true,
-*/
