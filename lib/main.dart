@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quizzler/quiz_brain.dart';
+
+QuizBrain quizBrain = QuizBrain();
 
 void main() => runApp(const Quizzler());
 
@@ -29,32 +32,39 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  final List<String> _questions = [
-    'You can lead a cow down stairs but not up stairs.',
-    'Approximately one quarter of human bones are in the feet.',
-    'A slug\'s blood is green.',
-  ];
-  final List<bool> _answers = [false, true, true];
+  String _questionText = quizBrain.question;
   final List<Icon> _results = [];
-  int _currentQuestionIndex = 0;
 
-  bool get quizFinished => _results.length == _questions.length;
-  bool get anyQuestions => _currentQuestionIndex < _questions.length - 1;
+  Future<void> reviewUserResponse(bool answer, BuildContext context) async {
+    if (quizBrain.completed) {
+      var repeat = await showAlertDialog(context, 'Do you want to repeat?');
 
-  void answerTapped(bool answer) {
-    if (quizFinished) return;
-
-    checkAnswer(answer);
-
-    if (anyQuestions) showNextQuestion();
+      if (repeat) {
+        resetQuiz();
+      }
+    } else {
+      checkAnswer(answer);
+    }
   }
 
-  void showNextQuestion() => setState(() => _currentQuestionIndex++);
+  void checkAnswer(bool answer) {
+    var valid = quizBrain.validateAnswer(answer);
+    setResult(valid);
+    setNextQuestion();
+  }
 
-  bool answerIsValid(bool answer) => _answers[_currentQuestionIndex] == answer;
+  void setNextQuestion() => setState(() {
+        quizBrain.moveToTheNextQuestion();
+        _questionText = quizBrain.question;
+      });
 
-  void checkAnswer(bool answer) => setState(() => _results
-      .add(answerIsValid(answer) ? validResultIcon() : invalidResultIcon()));
+  void setResult(bool valid) => setState(
+      () => _results.add(valid ? validResultIcon() : invalidResultIcon()));
+
+  void resetQuiz() => setState(() {
+        _results.clear();
+        quizBrain.resetQuiz();
+      });
 
   Icon validResultIcon() => const Icon(Icons.check, color: Colors.green);
   Icon invalidResultIcon() => const Icon(Icons.close, color: Colors.red);
@@ -71,7 +81,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                _questions[_currentQuestionIndex],
+                _questionText,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 25.0,
@@ -95,7 +105,7 @@ class _QuizPageState extends State<QuizPage> {
                   fontSize: 20.0,
                 ),
               ),
-              onPressed: () => answerTapped(true),
+              onPressed: () async => await reviewUserResponse(true, context),
             ),
           ),
         ),
@@ -113,7 +123,7 @@ class _QuizPageState extends State<QuizPage> {
                   color: Colors.white,
                 ),
               ),
-              onPressed: () => answerTapped(false),
+              onPressed: () async => await reviewUserResponse(false, context),
             ),
           ),
         ),
@@ -123,4 +133,38 @@ class _QuizPageState extends State<QuizPage> {
       ],
     );
   }
+}
+
+Future<bool> showAlertDialog(BuildContext context, String message,
+    {String confirm = 'Yes', String decline = 'No'}) async {
+  // set up the buttons
+  Widget cancelButton = ElevatedButton(
+    child: Text(decline),
+    onPressed: () {
+      // returnValue = false;
+      Navigator.of(context).pop(false);
+    },
+  );
+  Widget continueButton = ElevatedButton(
+    child: Text(confirm),
+    onPressed: () {
+      // returnValue = true;
+      Navigator.of(context).pop(true);
+    },
+  ); // set up the AlertDialog
+  AlertDialog alert = AlertDialog(
+    title: Text(message),
+    actions: [
+      cancelButton,
+      continueButton,
+    ],
+  ); // show the dialog
+  final result = await showDialog<bool?>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return alert;
+    },
+  );
+  return result ?? false;
 }
